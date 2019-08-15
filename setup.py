@@ -1,14 +1,22 @@
-from distutils.core import setup
+import setuptools
 
-setup(
-    name = 'ssl_expiration',
-    packages = ['ssl_expiration'],
-    version = 'v0.0.0',
-    description = 'Python tool for checking domain ssl certificate',
-    author = 'Patrik Skřivánek',
-    author_email = 'kriegsmarine1995@gmail.com',
-    url = 'https://github.com/patrikskrivanek/ssl_expiration.git',
-    download_url = 'https://github.com/patrikskrivanek/ssl_expiration/archive/v0.0.0.tar.gz',
-    keywords = ['ssl', 'check', 'certificate'],
-    classifiers = [],
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+setuptools.setup(
+    name='sslexp',
+    version='v1.0.0',
+    scripts=['sslexp'],
+    author="Patrik Skřivánek",
+    author_email="kriegsmarine1995@gmail.com",
+    description="...",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/patrikskrivanek/ssl_expiration.git",
+    packages=setuptools.find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
 )

@@ -1,0 +1,118 @@
+#!/usr/bin/python
+
+import argparse
+import datetime
+import socket
+import ssl
+
+VERSION = "v1.0.0"
+RELEASE = "2019-08-15"
+
+DESCRIPTION = """
+This program checks ssl certificate expiration date.
+"""
+
+STATE_OK = 0
+STATE_WARNING = 1
+STATE_CRITICAL = 2
+STATE_UNKNOWN = 3
+
+
+def arg_parse():
+    """
+    Parse input arguments
+
+    :return:
+    """
+
+    parser = argparse.ArgumentParser(description=DESCRIPTION)
+    parser.add_argument('--version', action='version', version='%(prog)s {version}'.format(version=VERSION))
+    parser.add_argument('--url', help='URL of ssl certificate for check', required=True)
+    parser.add_argument('--warning', help='Number of days for warning output', required=True)
+    parser.add_argument('--critical', help='Number of days for critical output', required=True)
+    args = parser.parse_args()
+
+    return args
+
+
+def ssl_expiration_datetime(domain: str, timeout: int = 3.0, ssl_port: int = 443) -> datetime.datetime:
+    """
+    Get ssl certificate expiration date
+
+    :param domain:
+    :param timeout:
+    :param ssl_port:
+    :return: datetime.datetime
+    """
+
+    ssl_date_fmt = r'%b %d %H:%M:%S %Y %Z'
+
+    context = ssl.create_default_context()
+    conn = context.wrap_socket(socket.socket(socket.AF_INET), server_hostname=domain)
+    conn.settimeout(timeout)
+
+    conn.connect((domain, ssl_port))
+    ssl_info = conn.getpeercert()
+
+    return datetime.datetime.strptime(ssl_info['notAfter'], ssl_date_fmt)
+
+
+def ssl_life_time_remaining(hostname: str) -> datetime.timedelta:
+    """
+    Returns the number of days until ssl certificate expires
+
+    :param hostname:
+    :return: datetime.timedelta
+    """
+
+    expires = ssl_expiration_datetime(hostname)
+
+    return expires - datetime.datetime.utcnow()
+
+
+def check_domain(domain: str, critical: int = 20, warning: int = 30):
+    """
+    Returns output message a status code based on domain measurement
+
+    :param domain:
+    :param critical:
+    :param warning:
+    :return:
+    """
+
+    result = {"message": '', "code": STATE_UNKNOWN}
+
+    try:
+        exp_time = ssl_life_time_remaining(domain)
+    except ssl.CertificateError as e:
+        result.update(message='UNKNOWN: ssl certificate error {exception}'.format(exception=e))
+    except ssl.SSLError as e:
+        result.update(message='UNKNOWN: ssl certificate error {exception}'.format(exception=e))
+    except socket.timeout as e:
+        result.update(message='UNKNOWN: could not connect to domain {exception}'.format(exception=e))
+    else:
+        if exp_time < datetime.timedelta(days=0):
+            result.update(message='CRITICAL: ssl certificate for {domain} has expired'.format(domain=domain))
+            result.update(code=STATE_CRITICAL)
+        elif exp_time < datetime.timedelta(days=critical):
+            result.update(message='CRITICAL: ssl certificate for {domain} will expire in {expiration}'.format(
+                domain=domain, expiration=exp_time))
+            result.update(code=STATE_CRITICAL)
+        elif exp_time < datetime.timedelta(days=warning):
+            result.update(message='WARNING: ssl certificate for {domain} will expire in {expiration}'.format(
+                domain=domain, expiration=exp_time))
+            result.update(code=STATE_WARNING)
+        else:
+            result.update(message='OK: ssl certificate for {domain} is ok and will expire in {expiration}'.format(
+                domain=domain, expiration=exp_time))
+            result.update(code=STATE_OK)
+
+    return result
+
+
+if __name__ == "__main__":
+    parse_args = arg_parse()
+    domain_certificate_state = check_domain(parse_args.url, int(parse_args.critical), int(parse_args.warning))
+
+    print(domain_certificate_state['message'])
+    exit(domain_certificate_state['code'])
