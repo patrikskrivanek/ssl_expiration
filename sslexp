@@ -12,7 +12,8 @@ DESCRIPTION = """
 This program checks the expiration date of an ssl certificate.
 First set the url param that should contain the url address of a domain.
 The program returns a message and a status code based on a measurement result.
-"""
+Release: {release}
+""".format(release=RELEASE)
 
 STATE_OK = 0
 STATE_WARNING = 1
