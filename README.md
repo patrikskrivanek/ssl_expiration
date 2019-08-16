@@ -5,6 +5,7 @@
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
 [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
+[![Coverage Status](https://coveralls.io/repos/github/patrikskrivanek/ssl_expiration/badge.svg?branch=master)](https://coveralls.io/github/patrikskrivanek/ssl_expiration?branch=master)
 
 This program checks the expiration date of an ssl certificate.
 First set the url param that should contain the url address of a domain.
