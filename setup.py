@@ -9,10 +9,10 @@ setuptools.setup(
     scripts=['sslexp'],
     author="Patrik Skřivánek",
     author_email="kriegsmarine1995@gmail.com",
-    description="...",
-    long_description=long_description,
+    description="A Python utility for checking states of ssl certificates",
+    long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/patrikskrivanek/ssl_expiration.git",
+    url="https://github.com/patrikskrivanek/ssl_expiration",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

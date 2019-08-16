@@ -6,16 +6,22 @@ import socket
 import ssl
 
 VERSION = "v1.0.0"
-RELEASE = "2019-08-15"
+RELEASE = "2019-08-16"
 
 DESCRIPTION = """
-This program checks ssl certificate expiration date.
+This program checks the expiration date of an ssl certificate.
+First set the url param that should contain the url address of a domain.
+The program returns a message and a status code based on a measurement result.
 """
 
 STATE_OK = 0
 STATE_WARNING = 1
 STATE_CRITICAL = 2
 STATE_UNKNOWN = 3
+
+DEFAULT_WARNING = 30
+DEFAULT_CRITICAL = 20
+DEFAULT_SSL_PORT = 443
 
 
 def arg_parse():
@@ -27,15 +33,17 @@ def arg_parse():
 
     parser = argparse.ArgumentParser(description=DESCRIPTION)
     parser.add_argument('--version', action='version', version='%(prog)s {version}'.format(version=VERSION))
-    parser.add_argument('--url', help='URL of ssl certificate for check', required=True)
-    parser.add_argument('--warning', help='Number of days for warning output', required=True)
-    parser.add_argument('--critical', help='Number of days for critical output', required=True)
+    parser.add_argument('--url', help="URL of ssl certificate for check", required=True)
+    parser.add_argument('--warning', help="Number of days for warning output, default {}".format(DEFAULT_WARNING),
+                        type=int, default=DEFAULT_WARNING)
+    parser.add_argument('--critical', help="Number of days for critical output, default {}".format(DEFAULT_CRITICAL),
+                        type=int, default=DEFAULT_CRITICAL)
     args = parser.parse_args()
 
     return args
 
 
-def ssl_expiration_datetime(domain: str, timeout: int = 3.0, ssl_port: int = 443) -> datetime.datetime:
+def ssl_expiration_datetime(domain: str, timeout: int = 3.0, ssl_port: int = DEFAULT_SSL_PORT) -> datetime.datetime:
     """
     Get ssl certificate expiration date
 
@@ -70,7 +78,7 @@ def ssl_life_time_remaining(hostname: str) -> datetime.timedelta:
     return expires - datetime.datetime.utcnow()
 
 
-def check_domain(domain: str, critical: int = 20, warning: int = 30):
+def check_domain_ssl(domain: str, critical: int = DEFAULT_CRITICAL, warning: int = DEFAULT_WARNING) -> dict:
     """
     Returns output message a status code based on domain measurement
 
@@ -80,39 +88,41 @@ def check_domain(domain: str, critical: int = 20, warning: int = 30):
     :return:
     """
 
-    result = {"message": '', "code": STATE_UNKNOWN}
+    result = {"message": "empty", "code": STATE_UNKNOWN}
 
     try:
         exp_time = ssl_life_time_remaining(domain)
     except ssl.CertificateError as e:
-        result.update(message='UNKNOWN: ssl certificate error {exception}'.format(exception=e))
+        result.update(message="UNKNOWN: ssl certificate error {exception}".format(exception=e))
+        return result
     except ssl.SSLError as e:
-        result.update(message='UNKNOWN: ssl certificate error {exception}'.format(exception=e))
+        result.update(message="UNKNOWN: ssl certificate error {exception}".format(exception=e))
+        return result
     except socket.timeout as e:
-        result.update(message='UNKNOWN: could not connect to domain {exception}'.format(exception=e))
+        result.update(message="UNKNOWN: could not connect to domain {exception}".format(exception=e))
+        return result
     else:
         if exp_time < datetime.timedelta(days=0):
-            result.update(message='CRITICAL: ssl certificate for {domain} has expired'.format(domain=domain))
-            result.update(code=STATE_CRITICAL)
+            result.update(message="CRITICAL: ssl certificate for {domain} has expired".format(
+                domain=domain), code=STATE_CRITICAL)
+            return result
         elif exp_time < datetime.timedelta(days=critical):
-            result.update(message='CRITICAL: ssl certificate for {domain} will expire in {expiration}'.format(
-                domain=domain, expiration=exp_time))
-            result.update(code=STATE_CRITICAL)
+            result.update(message="CRITICAL: ssl certificate for {domain} will expire in {expiration}".format(
+                domain=domain, expiration=exp_time), code=STATE_CRITICAL)
+            return result
         elif exp_time < datetime.timedelta(days=warning):
-            result.update(message='WARNING: ssl certificate for {domain} will expire in {expiration}'.format(
-                domain=domain, expiration=exp_time))
-            result.update(code=STATE_WARNING)
+            result.update(message="WARNING: ssl certificate for {domain} will expire in {expiration}".format(
+                domain=domain, expiration=exp_time), code=STATE_WARNING)
+            return result
         else:
-            result.update(message='OK: ssl certificate for {domain} is ok and will expire in {expiration}'.format(
-                domain=domain, expiration=exp_time))
-            result.update(code=STATE_OK)
-
-    return result
+            result.update(message="OK: ssl certificate for {domain} is ok and will expire in {expiration}".format(
+                domain=domain, expiration=exp_time), code=STATE_OK)
+            return result
 
 
 if __name__ == "__main__":
     parse_args = arg_parse()
-    domain_certificate_state = check_domain(parse_args.url, int(parse_args.critical), int(parse_args.warning))
+    domain_certificate_state = check_domain_ssl(parse_args.url, int(parse_args.critical), int(parse_args.warning))
 
     print(domain_certificate_state['message'])
     exit(domain_certificate_state['code'])
