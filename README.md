@@ -2,10 +2,11 @@
 #### check a state of your ssl certificates simply and cleverly
 
 ![version](https://img.shields.io/badge/version-1.0.0-brightgreen)
+[![Build Status](https://travis-ci.org/patrikskrivanek/ssl_expiration.svg?branch=master)](https://travis-ci.org/patrikskrivanek/ssl_expiration)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/patrikskrivanek/ssl_expiration.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/patrikskrivanek/ssl_expiration/context:python)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
 [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
-[![Build Status](https://travis-ci.org/patrikskrivanek/ssl_expiration.svg?branch=master)](https://travis-ci.org/patrikskrivanek/ssl_expiration)
 
 This program checks the expiration date of an ssl certificate.
 First set the url param that should contain the url address of a domain.
