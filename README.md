@@ -29,8 +29,8 @@ wget https://github.com/patrikskrivanek/ssl_expiration/blob/master/sslexp
 Argument | Description | Required
 ------------ | ------------- | -------------
 --url | URL of an ssl certificate for check | yes
---warning | Number of days for warning output | no *[dafault 30]*
---critical | Number of days for critical output | no *[dafault 20]*
+--warning | Number of days for warning output | no *[default 30]*
+--critical | Number of days for critical output | no *[default 20]*
 --version | Show program version | optional
 -h --help | Show program help and usage | optional
 
