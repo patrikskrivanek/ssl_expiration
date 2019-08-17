@@ -5,7 +5,7 @@ import datetime
 import socket
 import ssl
 
-VERSION = "v1.0.0"
+VERSION = "v1.0.1"
 RELEASE = "2019-08-16"
 
 DESCRIPTION = """

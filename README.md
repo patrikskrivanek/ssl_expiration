@@ -1,7 +1,7 @@
 # sslexp
 #### check a state of your ssl certificates simply and cleverly
 
-![version](https://img.shields.io/badge/version-1.0.0-brightgreen)
+![version](https://img.shields.io/badge/version-1.0.1-brightgreen)
 [![Build Status](https://travis-ci.org/patrikskrivanek/ssl_expiration.svg?branch=master)](https://travis-ci.org/patrikskrivanek/ssl_expiration)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/patrikskrivanek/ssl_expiration.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/patrikskrivanek/ssl_expiration/context:python)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
