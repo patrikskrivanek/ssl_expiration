@@ -25,7 +25,7 @@ DEFAULT_CRITICAL = 20
 DEFAULT_SSL_PORT = 443
 
 
-def arg_parse():
+def arg_parse() -> argparse:
     """
     Parse input arguments
 
@@ -94,13 +94,16 @@ def check_domain_ssl(domain: str, critical: int = DEFAULT_CRITICAL, warning: int
     try:
         exp_time = ssl_life_time_remaining(domain)
     except ssl.CertificateError as e:
-        result.update(message="UNKNOWN: ssl certificate error {exception}".format(exception=e))
+        result.update(message="UNKNOWN: ssl certificate error, {exception}".format(exception=e))
         return result
     except ssl.SSLError as e:
-        result.update(message="UNKNOWN: ssl certificate error {exception}".format(exception=e))
+        result.update(message="UNKNOWN: ssl error, {exception}".format(exception=e))
         return result
     except socket.timeout as e:
-        result.update(message="UNKNOWN: could not connect to domain {exception}".format(exception=e))
+        result.update(message="UNKNOWN: socket timeout, {exception}".format(exception=e))
+        return result
+    except socket.error as e:
+        result.update(message="UNKNOWN: socket error, {exception}".format(exception=e))
         return result
     else:
         if exp_time < datetime.timedelta(days=0):
