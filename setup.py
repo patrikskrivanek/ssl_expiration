@@ -22,5 +22,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    keywords="ssl certificate check"
+    keywords="ssl certificate check",
+    python_requires=">=3.6"
 )
