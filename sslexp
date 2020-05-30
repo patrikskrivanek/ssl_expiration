@@ -4,8 +4,9 @@ import argparse
 import datetime
 import socket
 import ssl
+import json
 
-VERSION = "v1.2.0"
+VERSION = "v1.3.0"
 RELEASE = "2020-05-30"
 
 DESCRIPTION = """
@@ -24,6 +25,7 @@ DEFAULT_WARNING = 30
 DEFAULT_CRITICAL = 20
 DEFAULT_SSL_PORT = 443
 DEFAULT_TIMEOUT = 3
+DEFAULT_OUTPUT = "text"
 
 
 def arg_parse() -> argparse:
@@ -44,52 +46,53 @@ def arg_parse() -> argparse:
                         type=int, default=DEFAULT_SSL_PORT)
     parser.add_argument('--timeout', help="Timeout for check in seconds, default {}".format(DEFAULT_TIMEOUT),
                         type=int, default=DEFAULT_TIMEOUT)
+    parser.add_argument('--output', help="Output format (text, json), default {}".format(DEFAULT_OUTPUT),
+                        type=str, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
 
     return args
 
 
-def ssl_expiration_datetime(domain: str, timeout: int = DEFAULT_TIMEOUT,
-                            ssl_port: int = DEFAULT_SSL_PORT) -> datetime.datetime:
-    """
-    Get ssl certificate expiration date
-
-    :param domain:
-    :param timeout:
-    :param ssl_port:
-    :return: datetime.datetime
-    """
-
-    ssl_date_fmt = r'%b %d %H:%M:%S %Y %Z'
-
-    context = ssl.create_default_context()
-    conn = context.wrap_socket(socket.socket(socket.AF_INET), server_hostname=domain)
-    conn.settimeout(timeout)
-
-    conn.connect((domain, ssl_port))
-    ssl_info = conn.getpeercert()
-
-    return datetime.datetime.strptime(ssl_info['notAfter'], ssl_date_fmt)
-
-
-def ssl_life_time_remaining(hostname: str, port: int, timeout: int) -> datetime.timedelta:
+def monitor(hostname: str, port: int, timeout: int) -> dict:
     """
     Returns the number of days until ssl certificate expires
 
     :param hostname:
     :param port:
     :param timeout:
-    :return: datetime.timedelta
+    :return:
     """
 
+    ssl_date_fmt = r'%b %d %H:%M:%S %Y %Z'
+
+    context = ssl.create_default_context()
+    conn = context.wrap_socket(socket.socket(socket.AF_INET), server_hostname=hostname)
+
+    conn.settimeout(timeout)
+    conn.connect((hostname, port))
+    ssl_data = conn.getpeercert()
+
+    issuer = "issuer not known"
     now = datetime.datetime.utcnow()
-    expires = ssl_expiration_datetime(domain=hostname, ssl_port=port, timeout=timeout)
+    expire = datetime.datetime.strptime(ssl_data['notAfter'], ssl_date_fmt)
 
-    return expires - now
+    for ix in ssl_data['issuer']:
+        if ix[0][0] == "commonName":
+            issuer = ix[0][1]
+
+    return {
+        "expiration": expire - now,
+        "issuer_common_name": issuer
+    }
 
 
-def check_domain_ssl(domain: str, critical: int = DEFAULT_CRITICAL, warning: int = DEFAULT_WARNING,
-                     port: int = DEFAULT_SSL_PORT, timeout: int = DEFAULT_TIMEOUT) -> dict:
+def ssl_exp(
+        domain: str,
+        critical: int = DEFAULT_CRITICAL,
+        warning: int = DEFAULT_WARNING,
+        port: int = DEFAULT_SSL_PORT,
+        timeout: int = DEFAULT_TIMEOUT
+) -> dict:
     """
     Returns output message a status code based on domain measurement
 
@@ -104,41 +107,40 @@ def check_domain_ssl(domain: str, critical: int = DEFAULT_CRITICAL, warning: int
     result = {"message": "empty", "code": STATE_UNKNOWN}
 
     try:
-        exp_time = ssl_life_time_remaining(hostname=domain, port=port, timeout=timeout)
+        check = monitor(hostname=domain, port=port, timeout=timeout)
+        exp_time = check.get("expiration")
+        issuer = check.get("issuer_common_name")
     except ssl.CertificateError as e:
         result.update(message="UNKNOWN: ssl certificate error, {exception}".format(exception=e))
-        return result
     except ssl.SSLError as e:
         result.update(message="UNKNOWN: ssl error, {exception}".format(exception=e))
-        return result
     except socket.timeout as e:
         result.update(message="UNKNOWN: socket timeout, {exception}".format(exception=e))
-        return result
     except socket.error as e:
         result.update(message="UNKNOWN: socket error, {exception}".format(exception=e))
-        return result
     else:
         if exp_time < datetime.timedelta(days=0):
-            result.update(message="CRITICAL: ssl certificate for {domain} has expired".format(
+            result.update(message="CRITICAL: SSL {domain} has expired!".format(
                 domain=domain), code=STATE_CRITICAL)
-            return result
         elif exp_time < datetime.timedelta(days=critical):
-            result.update(message="CRITICAL: ssl certificate for {domain} will expire in {expiration}".format(
-                domain=domain, expiration=exp_time), code=STATE_CRITICAL)
-            return result
+            result.update(message="CRITICAL: SSL {domain} ({issuer}) will expire in {expiration}".format(
+                domain=domain, expiration=exp_time, issuer=issuer), code=STATE_CRITICAL)
         elif exp_time < datetime.timedelta(days=warning):
-            result.update(message="WARNING: ssl certificate for {domain} will expire in {expiration}".format(
-                domain=domain, expiration=exp_time), code=STATE_WARNING)
-            return result
+            result.update(message="WARNING: SSL {domain} ({issuer}) will expire in {expiration}".format(
+                domain=domain, expiration=exp_time, issuer=issuer), code=STATE_WARNING)
         else:
-            result.update(message="OK: ssl certificate for {domain} is ok and will expire in {expiration}".format(
-                domain=domain, expiration=exp_time), code=STATE_OK)
-            return result
+            result.update(message="OK: SSL {domain} ({issuer}) will expire in {expiration}".format(
+                domain=domain, expiration=exp_time, issuer=issuer), code=STATE_OK)
+
+    return result
 
 
 if __name__ == "__main__":
+    # parse cmd args
     parse_args = arg_parse()
-    domain_certificate_state = check_domain_ssl(
+
+    # check ssl cert
+    cert_check = ssl_exp(
         domain=parse_args.url,
         critical=int(parse_args.critical),
         warning=int(parse_args.warning),
@@ -146,5 +148,13 @@ if __name__ == "__main__":
         timeout=int(parse_args.timeout)
     )
 
-    print(domain_certificate_state['message'])
-    exit(domain_certificate_state['code'])
+    # output in defined format
+    if parse_args.output == "text":
+        print(cert_check['message'])
+    elif parse_args.output == "json":
+        print(json.dumps(cert_check))
+    else:
+        # default: text
+        print("gg")
+
+    exit(cert_check['code'])
