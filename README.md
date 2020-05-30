@@ -1,7 +1,7 @@
 # sslexp
 #### check a state of your ssl certificates simply and cleverly
 
-![version](https://img.shields.io/badge/version-1.0.1-brightgreen)
+![version](https://img.shields.io/badge/version-1.1.0-brightgreen)
 [![Build Status](https://travis-ci.org/patrikskrivanek/ssl_expiration.svg?branch=master)](https://travis-ci.org/patrikskrivanek/ssl_expiration)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/patrikskrivanek/ssl_expiration.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/patrikskrivanek/ssl_expiration/context:python)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
@@ -33,6 +33,7 @@ Argument | Description | Required
 --url | URL of an ssl certificate for check | yes
 --warning | Number of days for warning output | no *[default 30]*
 --critical | Number of days for critical output | no *[default 20]*
+--port | SSL port | no *[default 443]*
 --version | Show program version | optional
 -h --help | Show program help and usage | optional
 
@@ -50,6 +51,9 @@ sslexp --url github.com
 
 # check the cert with your own warning and critical params
 sslexp --url github.com --warning 5 --critical 3
+
+# check the ssl certificate on specific port
+sslexp --url website.com --port 8085
 
 # show program help
 sslexp --help

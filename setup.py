@@ -5,10 +5,10 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="sslexp",
-    version="v1.0.1",
+    version="v1.1.0",
     scripts=['sslexp'],
     author="Patrik Skřivánek",
-    author_email="kriegsmarine1995@gmail.com",
+    author_email="patrik.skrivanek@gmail.com",
     description="A Python utility for checking states of ssl certificates",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -19,6 +19,7 @@ setuptools.setup(
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],

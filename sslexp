@@ -5,8 +5,8 @@ import datetime
 import socket
 import ssl
 
-VERSION = "v1.0.1"
-RELEASE = "2019-08-16"
+VERSION = "v1.1.0"
+RELEASE = "2020-05-30"
 
 DESCRIPTION = """
 This program checks the expiration date of an ssl certificate.
@@ -39,6 +39,8 @@ def arg_parse() -> argparse:
                         type=int, default=DEFAULT_WARNING)
     parser.add_argument('--critical', help="Number of days for critical output, default {}".format(DEFAULT_CRITICAL),
                         type=int, default=DEFAULT_CRITICAL)
+    parser.add_argument('--port', help="SSL port, default {}".format(DEFAULT_SSL_PORT),
+                        type=int, default=DEFAULT_SSL_PORT)
     args = parser.parse_args()
 
     return args
@@ -66,33 +68,37 @@ def ssl_expiration_datetime(domain: str, timeout: int = 3.0, ssl_port: int = DEF
     return datetime.datetime.strptime(ssl_info['notAfter'], ssl_date_fmt)
 
 
-def ssl_life_time_remaining(hostname: str) -> datetime.timedelta:
+def ssl_life_time_remaining(hostname: str, port: int) -> datetime.timedelta:
     """
     Returns the number of days until ssl certificate expires
 
     :param hostname:
+    :param port:
     :return: datetime.timedelta
     """
 
-    expires = ssl_expiration_datetime(hostname)
+    now = datetime.datetime.utcnow()
+    expires = ssl_expiration_datetime(domain=hostname, ssl_port=port)
 
-    return expires - datetime.datetime.utcnow()
+    return expires - now
 
 
-def check_domain_ssl(domain: str, critical: int = DEFAULT_CRITICAL, warning: int = DEFAULT_WARNING) -> dict:
+def check_domain_ssl(domain: str, critical: int = DEFAULT_CRITICAL, warning: int = DEFAULT_WARNING,
+                     port: int = DEFAULT_SSL_PORT) -> dict:
     """
     Returns output message a status code based on domain measurement
 
     :param domain:
     :param critical:
     :param warning:
+    :param port:
     :return:
     """
 
     result = {"message": "empty", "code": STATE_UNKNOWN}
 
     try:
-        exp_time = ssl_life_time_remaining(domain)
+        exp_time = ssl_life_time_remaining(domain, port)
     except ssl.CertificateError as e:
         result.update(message="UNKNOWN: ssl certificate error, {exception}".format(exception=e))
         return result
@@ -126,7 +132,9 @@ def check_domain_ssl(domain: str, critical: int = DEFAULT_CRITICAL, warning: int
 
 if __name__ == "__main__":
     parse_args = arg_parse()
-    domain_certificate_state = check_domain_ssl(parse_args.url, int(parse_args.critical), int(parse_args.warning))
+    domain_certificate_state = check_domain_ssl(
+        parse_args.url, int(parse_args.critical), int(parse_args.warning), int(parse_args.port)
+    )
 
     print(domain_certificate_state['message'])
     exit(domain_certificate_state['code'])
