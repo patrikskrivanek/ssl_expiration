@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="sslexp",
-    version="v1.1.0",
+    version="v1.2.0",
     scripts=['sslexp'],
     author="Patrik Skřivánek",
     author_email="patrik.skrivanek@gmail.com",
