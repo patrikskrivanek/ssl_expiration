@@ -57,7 +57,7 @@ sslexp --url github.com --warning 5 --critical 3
 sslexp --url website.com --port 8085
 
 # check the ssl cert with timeout
-sslexp --url website.com --timeout 5.0
+sslexp --url website.com --timeout 5
 
 # show program help
 sslexp --help
