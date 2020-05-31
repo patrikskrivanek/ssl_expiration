@@ -34,7 +34,7 @@ Argument | Description | Data type | Required
 --critical | Number of days for critical output | integer | no *[default: 20]*
 --port | SSL port | integer | no *[default: 443]*
 --timeout | Timeout in seconds for check | integer | no *[default: 3]*
---output | Output format (text, json) | string | no *[default: text]*
+--output | Output format (text, json, nagios) | string | no *[default: text]*
 --version | Show program version | | optional
 -h --help | Show program help and usage | | optional
 

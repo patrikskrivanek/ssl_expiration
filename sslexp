@@ -6,8 +6,8 @@ import socket
 import ssl
 import json
 
-VERSION = "v1.3.0"
-RELEASE = "2020-05-30"
+VERSION = "v1.4.0"
+RELEASE = "2020-05-31"
 
 DESCRIPTION = """
 This program checks the expiration date of an ssl certificate.
@@ -46,7 +46,7 @@ def arg_parse() -> argparse:
                         type=int, default=DEFAULT_SSL_PORT)
     parser.add_argument('--timeout', help="Timeout for check in seconds, default {}".format(DEFAULT_TIMEOUT),
                         type=int, default=DEFAULT_TIMEOUT)
-    parser.add_argument('--output', help="Output format (text, json), default {}".format(DEFAULT_OUTPUT),
+    parser.add_argument('--output', help="Output format (text, json, nagios), default {}".format(DEFAULT_OUTPUT),
                         type=str, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
 
@@ -86,6 +86,56 @@ def monitor(hostname: str, port: int, timeout: int) -> dict:
     }
 
 
+def output_text(ssl_check):
+    """
+    Output text
+    :param ssl_check: ssl_exp
+    :return:
+    """
+
+    return ssl_check['message']
+
+
+def output_json(ssl_check):
+    """
+    Output json
+    :param ssl_check: ssl_exp
+    :return:
+    """
+
+    ssl_check.update(expiration=str(ssl_check['expiration']))
+
+    return json.dumps(ssl_check)
+
+
+def output_nagios(ssl_check, warn: int, crit: int):
+    """
+    Output nagios
+    :param ssl_check: ssl_exp
+    :param warn:
+    :param crit:
+    :return:
+    """
+
+    if ssl_check['code'] == 0:
+        state = 'OK'
+    elif ssl_check['code'] == 1:
+        state = 'WARNING'
+    elif ssl_check['code'] == 2:
+        state = 'CRITICAL'
+    elif ssl_check['code'] == 3:
+        state = 'UNKNOWN'
+    else:
+        state = 'UNKNOWN'
+
+    days = ssl_check['expiration'].days
+    label = "SSL certificate {state} - days: {days} | days={days};{warning};{critical};{min};{max}"
+
+    return label.format(
+        state=state, days=days, warning=warn, critical=crit, min=days, max=days
+    )
+
+
 def ssl_exp(
         domain: str,
         critical: int = DEFAULT_CRITICAL,
@@ -104,12 +154,13 @@ def ssl_exp(
     :return:
     """
 
-    result = {"message": "empty", "code": STATE_UNKNOWN}
+    result = {"message": "empty", "code": STATE_UNKNOWN, "expiration": "empty"}
 
     try:
         check = monitor(hostname=domain, port=port, timeout=timeout)
         exp_time = check.get("expiration")
         issuer = check.get("issuer_common_name")
+        result.update(expiration=exp_time)
     except ssl.CertificateError as e:
         result.update(message="UNKNOWN: ssl certificate error, {exception}".format(exception=e))
     except ssl.SSLError as e:
@@ -138,23 +189,30 @@ def ssl_exp(
 if __name__ == "__main__":
     # parse cmd args
     parse_args = arg_parse()
+    wrn = int(parse_args.warning)
+    crt = int(parse_args.critical)
 
     # check ssl cert
     cert_check = ssl_exp(
         domain=parse_args.url,
-        critical=int(parse_args.critical),
-        warning=int(parse_args.warning),
+        critical=crt,
+        warning=wrn,
         port=int(parse_args.port),
         timeout=int(parse_args.timeout)
     )
 
+    exit_code = cert_check['code']
+
     # output in defined format
     if parse_args.output == "text":
-        print(cert_check['message'])
+        output = output_text(cert_check)
     elif parse_args.output == "json":
-        print(json.dumps(cert_check))
+        output = output_json(cert_check)
+    elif parse_args.output == "nagios":
+        output = output_nagios(cert_check, wrn, crt)
     else:
         # default: text
-        print("gg")
+        output = output_text(cert_check)
 
-    exit(cert_check['code'])
+    print(output)
+    exit(exit_code)
